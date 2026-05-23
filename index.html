@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RITH MONY POS & Stock v7 Ultimate</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts for Khmer -->
+  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Kantumruy Pro', sans-serif; }
+    @media print {
+      body { background-color: white; color: black; }
+      .no-print { display: none !important; }
+      .print-area { border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; width: 100% !important; }
+    }
+  </style>
+  <!-- Chosen Palette: Slate-900 with Indigo/Navy accents and Emerald/Crimson highlights for a premium interactive database interface. -->
+  <!-- Application Structure Plan: Interactive Mobile-First workspace featuring three responsive screens: POS Cashier Terminal, Live Inventory Management, and EOD Closing Audit. Sync state switches between Local Storage Test mode and Cloud Connected Google Sheet. -->
+  <!-- Visualization & Content Choices:
+       - POS Catalog: Styled Base64 Image display.
+       - Cart Panel: Inline quantity selectors and adjustable Price inputs.
+       - Z-Closing Sheet: Chronological audit containing Product, Sales volumes, and actual Remaining Stocks.
+       - Invoice Lookup: Multi-user history mapping for continuous audit without using JSON fields in sheet.
+  -->
+  <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col pb-12">
+
+  <!-- ================= TOP CONNECTION BAR (លាក់ពេល Print) ================= -->
+  <div class="bg-slate-900 text-white text-[11px] px-4 py-2 flex justify-between items-center sticky top-0 z-50 no-print">
+    <div class="flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" id="sync-indicator"></span>
+      <span class="font-semibold text-slate-350" id="sync-status">ភ្ជាប់ Cloud Active (Google Sheet)</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="toggleAPIModal()" class="hover:text-blue-400 font-bold flex items-center gap-1">
+        <i class="fa-solid fa-cloud-arrow-up text-blue-400"></i> កំណត់ការភ្ជាប់ API
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= NAVBAR ================= -->
+  <nav class="bg-slate-800 text-white shadow-md p-4 flex justify-between items-center no-print border-b border-slate-700">
+    <div class="flex items-center gap-3">
+      <div class="bg-indigo-600 p-2.5 rounded-xl text-white shadow-md shadow-indigo-500/20">
+        <i class="fa-solid fa-store text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-base sm:text-lg font-bold tracking-wide">RITH MONY (រីទ្ធ មុនី)</h1>
+        <p class="text-[10px] text-slate-400 font-medium">ប្រព័ន្ធលក់ គ្រប់គ្រងស្តុក និងស្វែងរកវិក្កយបត្រ (V7 Ultimate)</p>
+      </div>
+    </div>
+    <div id="clock" class="text-xs text-slate-400 font-mono hidden sm:block">--:--</div>
+  </nav>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <div class="max-w-7xl mx-auto w-full p-4 flex-grow">
+    
+    <!-- 📊 DASHBOARD STATS OVERVIEW -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 no-print">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+        <div class="p-3 bg-blue-50 text-blue-600 rounded-lg"><i class="fa-solid fa-boxes-stacked text-lg"></i></div>
+<div>
+          <p class="text-[11px] font-bold text-slate-400 uppercase">មុខទំនិញសរុប</p>
+          <h3 id="stat-total-items" class="text-lg font-black text-slate-800">0</h3>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3 border-l-4 border-l-red-500">
+        <div class="p-3 bg-red-50 text-red-600 rounded-lg"><i class="fa-solid fa-triangle-exclamation text-lg animate-bounce"></i></div>
+        <div>
+          <p class="text-[11px] font-bold text-slate-400 uppercase">ស្តុកជិតអស់!</p>
+          <h3 id="stat-low-stock" class="text-lg font-black text-red-600">0</h3>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+        <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><i class="fa-solid fa-circle-dollar-to-slot text-lg"></i></div>
+        <div>
+          <p class="text-[11px] font-bold text-slate-400 uppercase">លក់សរុបថ្ងៃនេះ</p>
+          <h3 id="stat-today-sales" class="text-lg font-black text-emerald-600">0 ៛</h3>
+        </div>
+      </div>
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3">
+        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><i class="fa-solid fa-users text-lg"></i></div>
+        <div>
+          <p class="text-[11px] font-bold text-slate-400 uppercase">ចំនួនអតិថិជន/ម៉ូយ</p>
+          <h3 id="stat-total-cust" class="text-lg font-black text-indigo-900">0</h3>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB HEADERS -->
+    <div class="flex gap-1.5 bg-slate-800 p-1.5 rounded-xl shadow-xs mb-6 w-fit no-print">
+      <button onclick="switchTab('sales')" id="btn-sales" class="tab-btn flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all bg-indigo-600 text-white">
+        <i class="fa-solid fa-cash-register"></i> ផ្ទាំងលក់ (POS)
+      </button>
+      <button onclick="switchTab('stock')" id="btn-stock" class="tab-btn flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-400 hover:bg-slate-700 hover:text-white">
+        <i class="fa-solid fa-boxes-stacked"></i> គ្រប់គ្រងស្តុកទំនិញ
+      </button>
+      <button onclick="switchTab('reports')" id="btn-reports" class="tab-btn flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-400 hover:bg-slate-700 hover:text-white">
+        <i class="fa-solid fa-chart-line"></i> វិក្កយបត្របិទបញ្ជីរួម
+      </button>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-notification" class="hidden mb-4 p-4 rounded-xl flex items-center justify-between text-xs font-bold shadow-xs transition-all no-print">
+      <span id="toast-text"></span>
+      <button onclick="this.parentElement.classList.add('hidden')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- ------------------ TAB 1: SALES (POS) ------------------ -->
+    <div id="tab-sales" class="tab-content grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-8 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div class="w-full sm:w-85">
+            <label class="block text-xs font-bold text-slate-500 mb-1">ជ្រើសរើសអតិថិជន (តម្លៃម៉ូយចាស់នឹងទាញស្វ័យប្រវត្ត)</label>
+            <div class="flex gap-2">
+              <select id="cust-select" onchange="onCustomerChange()" class="flex-grow p-2.5 border border-slate-200 rounded-xl bg-slate-50 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500">
+                <!-- Customers Dropdown -->
+              </select>
+              <button onclick="openCustomerModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2.5 rounded-xl whitespace-nowrap"><i class="fa-solid fa-user-plus mr-1"></i> ថែមម៉ូយ</button>
+</div>
+          </div>
+          <div class="w-full sm:w-64">
+            <label class="block text-xs font-bold text-slate-500 mb-1">ស្វែងរកទំនិញ</label>
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+              <input type="text" oninput="filterPOS(this.value)" placeholder="វាយឈ្មោះទំនិញទីនេះ..." class="w-full pl-8 pr-4 py-2 border border-slate-200 rounded-xl text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+          </div>
+        </div>
+        
+        <div id="pos-products" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[500px] overflow-y-auto p-1">
+          <!-- Dynamic Products -->
+        </div>
+      </div>
+      
+      <!-- Cart Section -->
+      <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between h-[580px]">
+        <div class="flex flex-col h-full overflow-hidden">
+          <h3 class="text-sm font-bold text-slate-700 border-b pb-3 mb-3 flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-basket-shopping text-indigo-600"></i> កន្ត្រកទំនិញលក់</span>
+            <span class="bg-indigo-100 text-indigo-800 text-[10px] px-2 py-0.5 rounded-full font-black" id="cart-badge">0</span>
+          </h3>
+          <div class="overflow-y-auto flex-grow space-y-3 pr-1" id="cart-list">
+            <!-- Dynamic Cart Items -->
+          </div>
+        </div>
+        <div class="border-t pt-4 mt-4 space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-xs text-slate-600">សរុបសាច់ប្រាក់៖</span>
+            <span id="cart-total" class="font-black text-xl text-red-600">0 ៛</span>
+          </div>
+          <button onclick="submitCheckout()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-sm shadow-md shadow-emerald-500/20 transition-all flex justify-center items-center gap-2 shadow-sm">
+            <i class="fa-solid fa-circle-check"></i> ទូទាត់ លុយ និងកាត់ស្តុក
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ------------------ TAB 2: STOCK MANAGEMENT ------------------ -->
+    <div id="tab-stock" class="tab-content hidden bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-boxes-stacked text-indigo-600"></i> តារាងគ្រប់គ្រងតុល្យភាពស្តុកទំនិញ</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">បងអាចពិនិត្យមើលស្តុកនៅសល់ និងទំនិញដែលជិតអស់ពីស្តុកនៅទីនេះ</p>
+        </div>
+        <div class="flex gap-2 w-full sm:w-auto">
+          <button onclick="filterStockStatus('low')" class="bg-red-50 text-red-700 border border-red-200 text-[11px] font-bold px-3 py-2 rounded-xl hover:bg-red-100 transition-colors"><i class="fa-solid fa-filter mr-1"></i> មើលតែទំនិញជិតអស់</button>
+          <button onclick="filterStockStatus('all')" class="bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold px-3 py-2 rounded-xl hover:bg-slate-200 transition-colors">បង្ហាញទាំងអស់</button>
+          <button onclick="openFormModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl ml-auto"><i class="fa-solid fa-plus-circle mr-1"></i> បន្ថែមទំនិញថ្មី</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-slate-200">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-900 text-white font-bold">
+</div>
+          </div>
+          <div class="w-full sm:w-64">
+            <label class="block text-xs font-bold text-slate-500 mb-1">ស្វែងរកទំនិញ</label>
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+              <input type="text" oninput="filterPOS(this.value)" placeholder="វាយឈ្មោះទំនិញទីនេះ..." class="w-full pl-8 pr-4 py-2 border border-slate-200 rounded-xl text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+          </div>
+        </div>
+        
+        <div id="pos-products" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[500px] overflow-y-auto p-1">
+          <!-- Dynamic Products -->
+        </div>
+      </div>
+      
+      <!-- Cart Section -->
+      <div class="lg:col-span-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between h-[580px]">
+        <div class="flex flex-col h-full overflow-hidden">
+          <h3 class="text-sm font-bold text-slate-700 border-b pb-3 mb-3 flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-basket-shopping text-indigo-600"></i> កន្ត្រកទំនិញលក់</span>
+            <span class="bg-indigo-100 text-indigo-800 text-[10px] px-2 py-0.5 rounded-full font-black" id="cart-badge">0</span>
+          </h3>
+          <div class="overflow-y-auto flex-grow space-y-3 pr-1" id="cart-list">
+            <!-- Dynamic Cart Items -->
+          </div>
+        </div>
+        <div class="border-t pt-4 mt-4 space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-xs text-slate-600">សរុបសាច់ប្រាក់៖</span>
+            <span id="cart-total" class="font-black text-xl text-red-600">0 ៛</span>
+          </div>
+          <button onclick="submitCheckout()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-sm shadow-md shadow-emerald-500/20 transition-all flex justify-center items-center gap-2 shadow-sm">
+            <i class="fa-solid fa-circle-check"></i> ទូទាត់ លុយ និងកាត់ស្តុក
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ------------------ TAB 2: STOCK MANAGEMENT ------------------ -->
+    <div id="tab-stock" class="tab-content hidden bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-boxes-stacked text-indigo-600"></i> តារាងគ្រប់គ្រងតុល្យភាពស្តុកទំនិញ</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">បងអាចពិនិត្យមើលស្តុកនៅសល់ និងទំនិញដែលជិតអស់ពីស្តុកនៅទីនេះ</p>
+        </div>
+        <div class="flex gap-2 w-full sm:w-auto">
+          <button onclick="filterStockStatus('low')" class="bg-red-50 text-red-700 border border-red-200 text-[11px] font-bold px-3 py-2 rounded-xl hover:bg-red-100 transition-colors"><i class="fa-solid fa-filter mr-1"></i> មើលតែទំនិញជិតអស់</button>
+          <button onclick="filterStockStatus('all')" class="bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-bold px-3 py-2 rounded-xl hover:bg-slate-200 transition-colors">បង្ហាញទាំងអស់</button>
+          <button onclick="openFormModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl ml-auto"><i class="fa-solid fa-plus-circle mr-1"></i> បន្ថែមទំនិញថ្មី</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto rounded-xl border border-slate-200">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-900 text-white font-bold">
+<th class="p-3.5 w-16">រូបភាព</th>
+              <th class="p-3.5">ឈ្មោះទំនិញ</th>
+              <th class="p-3.5">ប្រភេទ / ខ្នាតគិត</th>
+              <th class="p-3.5 text-right">ថ្លៃដើម (Cost)</th>
+              <th class="p-3.5 text-right">តម្លៃលក់ទូទៅ</th>
+              <th class="p-3.5 text-center bg-indigo-950">ស្តុកនៅសល់បច្ចុប្បន្ន</th>
+              <th class="p-3.5 text-center">ស្ថានភាពស្តុក</th>
+              <th class="p-3.5 text-center">សកម្មភាព</th>
+            </tr>
+          </thead>
+          <tbody id="stock-table-body" class="divide-y divide-slate-100 bg-white font-semibold text-slate-700">
+            <!-- Dynamic Stock Rows -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ------------------ TAB 3: REPORTS & PERIODIC AUDIT ------------------ -->
+    <div id="tab-reports" class="tab-content hidden flex flex-col gap-6">
+      <!-- របារគ្រប់គ្រងការបិទបញ្ជី (លាក់ពេល Print) -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap justify-between items-center gap-4 no-print">
+        <div class="flex flex-wrap items-center gap-3 text-xs">
+          <label class="font-bold text-slate-700">តម្រងបិទបញ្ជី៖</label>
+          <select id="report-period-type" onchange="onPeriodTypeChange()" class="border border-slate-200 p-2 rounded-xl bg-slate-50 font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="daily">ប្រចាំថ្ងៃ (Daily)</option>
+            <option value="weekly">ប្រចាំសប្តាហ៍ (Weekly)</option>
+            <option value="monthly">ប្រចាំខែ (Monthly)</option>
+            <option value="yearly">ប្រចាំឆ្នាំ (Yearly)</option>
+          </select>
+          <input type="date" id="report-date-input" onchange="renderReports()" class="border border-slate-200 p-2 rounded-xl bg-slate-50 font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs flex items-center gap-2">
+          <i class="fa-solid fa-print"></i> បោះពុម្ពរបាយការណ៍បិទបញ្ជី (Print)
+        </button>
+      </div>
+
+      <!-- ផ្ទាំងវិក្កយបត្របិទបញ្ជីរួម -->
+      <div class="print-area bg-white p-8 rounded-2xl border border-slate-200 shadow-xs max-w-3xl mx-auto w-full mb-6" id="audit-report-print">
+        <div class="text-center border-b-2 border-dashed border-slate-300 pb-4 mb-6">
+          <h2 class="text-2xl font-black text-slate-850 tracking-wide">RITH MONY (រីទ្ធ មុនី)</h2>
+          <p class="text-xs text-slate-500 font-bold mt-1">របាយការណ៍បូកសរុបការលក់ និងតុល្យភាពស្តុកចុងក្រោយ</p>
+          <p class="text-[11px] text-slate-600 mt-2 font-black bg-slate-100 px-3 py-1 rounded-full inline-block">
+            ប្រភេទរបាយការណ៍៖ <span id="report-period-label" class="text-indigo-600">ប្រចាំថ្ងៃ</span> 
+            (<span id="report-date-display" class="text-slate-800">--/--/----</span>)
+          </p>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-300">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-50 text-slate-800 font-black border-b border-slate-300">
+                <th class="p-3 text-center w-12 border-r border-slate-300">ល.រ</th>
+                <th class="p-3 border-r border-slate-300">ឈ្មោះទំនិញ</th>
+                <th class="p-3 text-center w-24 border-r border-slate-300">ចំនួនលក់ចេញ</th>
+                <th class="p-3 text-right w-32 border-r border-slate-300">សរុបទឹកប្រាក់លក់</th>
+                <th class="p-3 text-center w-36 bg-indigo-50 text-indigo-950 font-black">ស្តុកនៅសល់ក្នុងហាង</th>
+              </tr>
+            </thead>
+            <tbody id="report-table-body" class="divide-y divide-slate-200 font-bold text-slate-700">
+              <!-- Dynamic Rows -->
+            </tbody>
+          </table>
+        </div>
+<!-- Summary Analysis Component -->
+        <div class="mt-6 border-t border-slate-300 pt-4 flex flex-col items-end gap-2 text-xs">
+          <div class="flex justify-between w-64 font-bold text-slate-500">
+            <span>ទឹកប្រាក់លក់សរុបរួម៖</span>
+            <span id="summary-revenue" class="text-slate-900 font-mono font-bold">0 ៛</span>
+          </div>
+          <div class="flex justify-between w-64 font-bold text-slate-400">
+            <span>ថ្លៃដើមទំនិញសរុប៖</span>
+            <span id="summary-cost" class="font-mono">0 ៛</span>
+          </div>
+          <div class="flex justify-between w-64 font-black text-emerald-600 border-t border-slate-200 pt-2 text-sm">
+            <span>ប្រាក់ចំណេញសុទ្ធប៉ាន់ស្មាន៖</span>
+            <span id="summary-profit" class="font-mono">0 ៛</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🔎 ផ្នែកស្វែងរក និងមើលប្រវត្តិវិក្កយបត្ររបស់ម៉ូយម្នាក់ៗឡើងវិញ (Invoice History & Lookup) -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4 no-print">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <h4 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+              <i class="fa-solid fa-receipt text-indigo-600"></i> ប្រវត្តិវិក្កយបត្រលក់លម្អិតតាមអតិថិជន
+            </h4>
+            <p class="text-[11px] text-slate-400 mt-0.5">បងអាចស្វែងរកវិក្កយបត្រចាស់ៗដើម្បីបោះពុម្ព ឬមើលទំនិញដែលបានលក់ឡើងវិញ</p>
+          </div>
+          <div class="relative w-full sm:w-64">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+            <input type="text" id="search-invoice-input" oninput="searchInvoices(this.value)" placeholder="ស្វែងរកតាមឈ្មោះម៉ូយ ឬលេខវិក្កយបត្រ..." class="w-full pl-8 pr-4 py-2 border border-slate-200 rounded-xl text-xs bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-900 text-white font-bold">
+                <th class="p-3">លេខវិក្កយបត្រ / កាលបរិច្ឆេទ</th>
+                <th class="p-3">ឈ្មោះអតិថិជន (ម៉ូយ)</th>
+                <th class="p-3">មុខទំនិញដែលបានទិញ</th>
+                <th class="p-3 text-right">សរុបការលក់</th>
+                <th class="p-3 text-center">សកម្មភាព</th>
+              </tr>
+            </thead>
+            <tbody id="invoice-history-tbody" class="divide-y divide-slate-100 font-semibold text-slate-700">
+              <!-- Dynamic Invoices -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= MODAL: REAL-TIME SALE INVOICE RECEIPT ================= -->
+  <div id="receiptModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center hidden p-4 z-50 no-print">
+    <div class="bg-white rounded-xl shadow-2xl p-5 max-w-xs w-full font-mono text-xs border border-slate-200 text-slate-800">
+      <div class="text-center border-b border-dashed pb-3 mb-3">
+        <h4 class="font-black text-sm">RITH MONY POS</h4>
+        <p class="text-[9px] text-slate-500">STR THE BEST SUPPLIES</p>
+        <p class="text-[9px] text-slate-400 mt-1" id="rec-date">--/--/----</p>
+      </div>
+      <div class="text-[10px] space-y-1 mb-3 bg-slate-50 p-2 rounded-lg">
+        <p><strong>លេខវិក្កយបត្រ:</strong> <span id="rec-inv-id">#0000</span></p>
+        <p><strong>អតិថិជន/ម៉ូយ:</strong> <span id="rec-customer">អតិថិជនទូទៅ</span></p>
+      </div>
+      <table class="w-full text-[10px] text-left border-collapse border-b border-dashed pb-2 mb-2">
+<thead>
+          <tr class="border-b font-bold text-slate-600">
+            <th class="pb-1">ទំនិញ</th>
+            <th class="pb-1 text-center">ចំនួន</th>
+            <th class="pb-1 text-right">សរុប</th>
+          </tr>
+        </thead>
+        <tbody id="rec-items-body" class="divide-y divide-slate-100">
+          <!-- Items -->
+        </tbody>
+      </table>
+      <div class="flex justify-between font-black text-xs pt-1">
+        <span>សរុបលុយរួម (Total):</span>
+        <span id="rec-grand-total" class="text-red-600">0 ៛</span>
+      </div>
+      <div class="mt-5 flex gap-2">
+        <button onclick="window.print()" class="flex-grow bg-slate-800 text-white font-bold py-
