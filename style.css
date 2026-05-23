@@ -1,0 +1,7 @@
+
+body{font-family:Arial,sans-serif;background:#f3f4f6;padding:20px}
+header{background:#1e293b;color:white;padding:10px;border-radius:10px}
+.container{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+.products,.cart{background:white;padding:15px;border-radius:10px}
+.product{border:1px solid #ddd;padding:10px;margin:10px 0}
+button{padding:8px 12px;cursor:pointer}
