@@ -376,8 +376,92 @@
         </tbody>
       </table>
       <div class="flex justify-between font-black text-xs pt-1">
+        <!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RITH MONY POS</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+<h1>RITH MONY POS & Stock</h1>
+</header>
+
+<div class="container">
+<div class="products">
+<h2>Products</h2>
+<div id="product-list"></div>
+</div>
+
+<div class="cart">
+<h2>Cart</h2>
+<div id="cart-list"></div>
+<p>Total: <span id="total">0៛</span></p>
+<button onclick="checkout()">Checkout</button>
+</div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
         <span>សរុបលុយរួម (Total):</span>
         <span id="rec-grand-total" class="text-red-600">0 ៛</span>
       </div>
       <div class="mt-5 flex gap-2">
-        <button onclick="window.print()" class="flex-grow bg-slate-800 text-white font-bold py-
+        <button onclick="window.p
+const products=[
+{name:"Coca Cola",price:2500},
+{name:"Water",price:1000},
+{name:"Snack",price:3000}
+];
+
+let cart=[];
+
+function renderProducts(){
+const list=document.getElementById("product-list");
+list.innerHTML="";
+products.forEach((p,i)=>{
+list.innerHTML += `
+<div class='product'>
+<b>${p.name}</b><br>
+${p.price}៛
+<button onclick='addToCart(${i})'>Add</button>
+</div>`;
+});
+}
+
+function addToCart(i){
+cart.push(products[i]);
+renderCart();
+}
+
+function renderCart(){
+const list=document.getElementById("cart-list");
+list.innerHTML="";
+let total=0;
+
+cart.forEach(item=>{
+total += item.price;
+list.innerHTML += `<div>${item.name} - ${item.price}៛</div>`;
+});
+
+document.getElementById("total").innerText=total+"៛";
+}
+
+function checkout(){
+alert("Sale completed");
+cart=[];
+renderCart();
+}
+
+renderProducts();
+rint()" class="flex-grow bg-slate-800 text-white font-bold py-
+
+body{font-family:Arial,sans-serif;background:#f3f4f6;padding:20px}
+header{background:#1e293b;color:white;padding:10px;border-radius:10px}
+.container{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+.products,.cart{background:white;padding:15px;border-radius:10px}
+.product{border:1px solid #ddd;padding:10px;margin:10px 0}
+button{padding:8px 12px;cursor:pointer}          
